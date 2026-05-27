@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>PsicoWeb | Bem-estar Mental</title>
+
+    <!-- Google Fonts: fontes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/boxicons@latest/css/boxicons.min.css">
+    <link rel="icon" href="img/LogoTCC.png" type="image/png">
+
+    <style>
+        
+        :root {
+            /* Verde */
+            --verde-principal: #4CAF8C;
+            --verde-escuro: #2E8B57;
+            --verde-claro: #A8E6CF;
+            --verde-suave: #E8F5F0;
+            
+            /* Roxo */
+            --roxo-principal: #9B7BB5;
+            --roxo-escuro: #6B4E8A;
+            --roxo-claro: #D4C5E8;
+            --roxo-suave: #F3EDF8;
+            
+            /* Laranja */
+            --laranja-principal: #F4A261;
+            --laranja-escuro: #E76F51;
+            --laranja-claro: #FFD6B5;
+            --laranja-suave: #FFF4E8;
+            
+            /* Neutros */
+            --branco: #FFFFFF;
+            --cinza-claro: #F5F7FA;
+            --cinza-medio: #CFD8DC;
+            --cinza-escuro: #455A64;
+            --texto-principal: #2C3E50;
+            --texto-secundario: #546E7A;
+        }
+
+        /* ========== RESET & GLOBAL ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: url(./img/BGTCC.png) center/cover no-repeat fixed;
+            font-family: "Roboto", sans-serif;
+            color: #000000;
+            line-height: 1.4;
+            scroll-behavior: smooth;
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 28px;
+        }
+
+        /* ========== NAVBAR ========== */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            padding: 20px 0;
+            gap: 20px;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            height: 80px;
+            filter: drop-shadow(0 0 10px var(--verde-principal));
+            transition: all 0.2s ease;
+        }
+
+        .logo-icon:hover {
+            filter: drop-shadow(0 0 15px var(--roxo-principal));
+            transform: rotate(-3deg);
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, var(--verde-principal), var(--roxo-principal));
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+            font-weight: 300px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--texto-principal);
+            font-size: 25px;
+            transition: 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--roxo-principal);
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 14px;
+        }
+
+        /* ========== BOTÕES DE LOGIN E CADASTRO ========== */
+        .btn-login {
+            background: transparent;
+            border: 1.5px solid var(--roxo-principal);
+            padding: 8px 28px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--roxo-escuro);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-login:hover {
+            border-color: var(--verde-principal);
+            background: rgba(76, 175, 140, 0.05);
+            color: var(--verde-escuro);
+            transform: translateY(-2px);
+        }
+
+        .btn-cadastro {
+            background: var(--verde-principal);
+            border: none;
+            padding: 8px 28px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--branco);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 4px 8px rgba(76, 175, 140, 0.2);
+        }
+
+        .btn-cadastro:hover {
+            background: var(--verde-escuro);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 18px -6px rgba(76, 175, 140, 0.4);
+        }
+
+        /* Botão principal (Comece agora) */
+        .btn-primary {
+            background: var(--verde-principal);
+            border: none;
+            padding: 14px 36px;
+            border-radius: 48px;
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--branco);
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 8px 20px rgba(76, 175, 140, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-primary:hover {
+            background: var(--verde-escuro);
+            transform: translateY(-3px);
+            box-shadow: 0 18px 28px -8px rgba(76, 175, 140, 0.4);
+        }
+
+
+        /* Botão de alerta/crise (Laranja) */
+        .btn-alert {
+            background: var(--laranja-principal);
+            border: none;
+            padding: 12px 28px;
+            border-radius: 48px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--texto-principal);
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-alert:hover {
+            background: var(--laranja-escuro);
+            color: var(--branco);
+            transform: translateY(-2px);
+        }
+
+        /* ========== HERO ========== */
+        .hero {
+            max-width: 900px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 60px 0 40px;
+        }
+
+        .badge {
+            background: var(--roxo-claro);
+            padding: 6px 18px;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--roxo-escuro);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 28px;
+        }
+
+        .hero h1 {
+            margin: 0 auto 24px;
+            font-size: 3.6rem;
+            font-weight: 800;
+            line-height: 1.2;
+            max-width: 700px;
+            background: linear-gradient(to right, var(--verde-principal), var(--roxo-principal), var(--laranja-principal));
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .hero-description {
+            font-size: 1.2rem;
+            max-width: 680px;
+            color: var(--texto-secundario);
+            line-height: 1.5;
+            margin-bottom: 36px;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        /* ========== SEÇÃO SOBRE ========== */
+        .about-journey {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 48px;
+            background: var(--branco);
+            border-radius: 10px;
+            padding: 48px 40px;
+            margin: 90px 0;
+            box-shadow: 0 18px 32px -12px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--roxo-claro);
+        }
+
+        .about-text {
+            flex: 1.2;
+        }
+
+        .about-text h2 {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--roxo-escuro);
+            margin-bottom: 20px;
+        }
+
+        .about-text p {
+            font-size: 1.2rem;
+            line-height: 1.5;
+            color: var(--texto-secundario);
+            margin-bottom: 24px;
+            text-align: justify;
+        }
+
+        /* ========== FERRAMENTAS ========== */
+        .features-section {
+            flex: 0.9;
+            background: linear-gradient(125deg, var(--verde-claro), var(--roxo-claro));
+            border-radius: 32px;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .section-header h2 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #FFF;
+            margin-bottom: 14px;
+        }
+
+        .section-header p {
+            font-size: 1.05rem;
+            color: var(--texto-secundario);
+            max-width: 560px;
+            margin: 0 auto;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+        }
+
+        /* Responsividade dos cards */
+        @media (max-width: 900px) {
+            .cards-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--branco);
+            border-radius: 32px;
+            padding: 32px 24px;
+            transition: all 0.25s ease;
+            box-shadow: 0 12px 26px -12px rgba(0, 0, 0, 0.08);
+            border: 1px solid var(--roxo-claro);
+            text-align: center;
+        }
+
+        .card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 28px 36px -16px rgba(76, 175, 140, 0.18);
+            border-color: var(--verde-principal);
+        }
+
+        .card-icon {
+            background: var(--roxo-claro);
+            width: 70px;
+            height: 70px;
+            border-radius: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 22px;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover .card-icon {
+            background: var(--verde-claro);
+        }
+
+        .card-icon i {
+            font-size: 34px;
+            color: var(--roxo-escuro);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover .card-icon i {
+            color: var(--verde-escuro);
+        }
+
+        .card h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 14px;
+            color: var(--verde-escuro);
+        }
+
+        .card p {
+            color: var(--texto-secundario);
+            line-height: 1.45;
+            font-size: 0.95rem;
+        }
+
+        
+        /* ========== FOOTER ========== */
+        .footer {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-top: 40px;
+            padding: 20px 0;
+            background: var(--verde-escuro);
+            border-radius: 20px 20px 0 0;
+        }
+
+        .footer-copyright {
+            max-width: 1280px;
+            width: 100%;
+            text-align: center;
+            color: var(--branco);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- ========== NAVBAR ========== -->
+        <header class="navbar">
+            <div class="logo-area">
+                <img src="./img/LogoTCC.png" alt="Logo PsicoWeb" class="logo-icon">
+                <span class="logo-text">PsicoWeb</span>
+            </div>
+
+            <nav class="nav-links">
+                <a href="#home">Home</a>
+                <a href="#sobre">Sobre</a>
+                <a href="#ferramentas">Ferramentas</a>
+                <a href="ajuda.html">Apoio</a>
+            </nav>
+
+            <div class="nav-buttons">
+                <a href="login.php" class="btn-login">Log in</a>
+                <a href="CADASTRO.php" class="btn-cadastro">Cadastrar-se</a>
+            </div>
+        </header>
+
+        <!-- ========== HERO SECTION ========== -->
+        <section class="hero" id="home">
+            <h1>Conectando você à sua <br> jornada de bem-estar mental</h1>
+            <div class="hero-description">
+                Uma plataforma que aproxima pacientes e psicólogos, facilitando o registro de pensamentos, emoções e
+                experiências para tornar cada sessão mais produtiva e significativa.
+            </div>
+            <div class="hero-cta">
+                <button class="btn-primary" id="ctaPrincipal" href="CADASTRO.html">Comece agora <i class='bx bx-right-arrow-alt'></i></button>
+            </div>
+        </section>
+
+        <!-- ========== SOBRE + FERRAMENTAS ========== -->
+        <div class="about-journey" id="sobre">
+            <div class="about-text">
+                <h2>Por que o PsicoWeb existe?</h2>
+                <p>
+                    Segundo a Organização Mundial da Saúde (OMS), o conceito de saúde mental abrange o bem-estar
+                    mental, físico e social, indo muito além da simples ausência de doença. Ela afeta todo o meio em
+                    que o indivíduo está inserido.
+                    <br><br>
+                    Nesse contexto, a psicoterapia se apresenta como um importante espaço para que indivíduos possam
+                    expressar sentimentos, refletir sobre suas experiências e desenvolver estratégias para lidar com
+                    dificuldades do cotidiano.
+                    <br><br>
+                    Entretanto, muitas pessoas encontram dificuldades em recordar ou encontrar espaço em sua rotina
+                    para organizar acontecimentos e pensamentos vivenciados entre uma sessão e outra, o que pode
+                    dificultar a comunicação durante o atendimento psicológico.
+                    <br><br>
+                    <strong>PsicoWeb</strong> surge como uma solução: um recurso estruturado onde o paciente pode anotar
+                    acontecimentos, emoções ou questões que deseja abordar na próxima sessão, possibilitando que o
+                    psicólogo tenha acesso prévio a essas informações e conduza o atendimento de forma mais
+                    direcionada.
+                </p>
+                <button class="btn-alert">
+                    <i class='bx bx-support'></i> Preciso de ajuda agora
+                </button>
+            </div>
+
+            <!-- ========== SEÇÃO FERRAMENTAS ========== -->
+            <div class="features-section" id="ferramentas">
+                <div class="section-header">
+                    <h2>Ferramentas pensadas para você</h2>
+                    <p>Registre pensamentos, emoções e fortaleça a relação terapêutica com recursos inteligentes.</p>
+                </div>
+
+                <div class="cards-grid">
+                    <div class="card">
+                        <div class="card-icon"><i class='bx bx-book-heart'></i></div> 
+                        <h3>Diário de pensamentos</h3>
+                        <p>Registre sentimentos diários e identifique padrões entre sessões valiosos para você e seu
+                            terapeuta.</p>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-icon"><i class='bx bx-edit-alt'></i></div>
+                        <h3>Anotações livres</h3>
+                        <p>Descreva acontecimentos, pensamentos e tudo o que quiser como faria em um diário físico.</p>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-icon"><i class='bx bx-folder-open'></i></div>
+                        <h3>Prontuário colaborativo</h3>
+                        <p>Espaço seguro para anotações compartilhadas entre paciente e psicólogo, com perguntas
+                            pré-selecionadas para otimizar o tempo.</p>
+                    </div>
+
+                    <div class="card">
+                       <div class="card-icon"><i class='bx bx-bell'></i></div> 
+                        <h3>Lembretes & metas</h3>
+                        <p>Defina pequenas metas de autocuidado e receba lembretes que incentivam sua rotina saudável.
+                        </p>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-icon"><i class='bx bx-line-chart'></i></div>
+                        <h3>Evolução emocional</h3>
+                        <p>Acompanhe gráficos e indicadores do seu progresso ao longo do tratamento.</p>
+                    </div>
+
+                    <div class="card">
+                       <div class="card-icon"><i class='bx bx-lock-alt'></i></div>
+                        <h3>Privacidade total</h3>
+                        <p>Seus dados são protegidos com criptografia e apenas você e seu psicólogo têm acesso.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== FOOTER ========== -->
+        <footer class="footer">
+            <div class="footer-copyright">
+                © 2026 PsicoWeb · Acolhendo sua jornada de bem-estar mental.
+            </div>
+        </footer>
+    </div>
+</body>
+
+</html>
