@@ -1,0 +1,663 @@
+<?php
+session_start();
+
+if (!isset($_SESSION['id_usuario'])) {
+    header("Location: login.php");
+    exit();
+}
+
+require "conexao.php";
+
+// Verifica se é psicólogo
+$sql = "SELECT tipo_usuario, nome_cliente FROM usuarios WHERE id = ?";
+$stmt = $con->prepare($sql);
+$stmt->bind_param("i", $_SESSION['id_usuario']);
+$stmt->execute();
+$user = $stmt->get_result()->fetch_assoc();
+
+if (!$user || $user['tipo_usuario'] !== 'psicologo') {
+    header("Location: painel.php");
+    exit();
+}
+
+$id_paciente = isset($_GET['id']) ? intval($_GET['id']) : 0;
+
+if ($id_paciente <= 0) {
+    header("Location: painel_psicologo.php");
+    exit();
+}
+
+// Verifica se este paciente está vinculado a este psicólogo
+$sql = "SELECT * FROM vinculos WHERE id_psicologo = ? AND id_paciente = ? AND status = 'ativo'";
+$stmt = $con->prepare($sql);
+$stmt->bind_param("ii", $_SESSION['id_usuario'], $id_paciente);
+$stmt->execute();
+$vinculo = $stmt->get_result()->fetch_assoc();
+
+if (!$vinculo) {
+    header("Location: painel_psicologo.php");
+    exit();
+}
+
+// Busca dados do paciente
+$sql = "SELECT id, nome_cliente, email, telefone FROM usuarios WHERE id = ?";
+$stmt = $con->prepare($sql);
+$stmt->bind_param("i", $id_paciente);
+$stmt->execute();
+$paciente = $stmt->get_result()->fetch_assoc();
+
+if (!$paciente) {
+    header("Location: painel_psicologo.php");
+    exit();
+}
+
+// Busca os registros da tabela de emoções do paciente
+$sql = "SELECT * FROM registros_emocoes WHERE id_usuario = ? ORDER BY data_registro DESC";
+$stmt = $con->prepare($sql);
+$stmt->bind_param("i", $id_paciente);
+$stmt->execute();
+$registros = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+// Busca entradas do diário do paciente
+$sql = "SELECT * FROM diario WHERE id_usuario = ? ORDER BY data_registro DESC";
+$stmt = $con->prepare($sql);
+$stmt->bind_param("i", $id_paciente);
+$stmt->execute();
+$diario = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+// Busca check-ins rápidos do paciente
+$sql = "SELECT * FROM checkins_rapidos WHERE id_usuario = ? ORDER BY data_registro DESC";
+$stmt = $con->prepare($sql);
+$stmt->bind_param("i", $id_paciente);
+$stmt->execute();
+$checkins = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+// Calcula estatísticas
+$total_registros = count($registros);
+$total_diario = count($diario);
+$total_checkins = count($checkins);
+
+$media_intensidade = 0;
+if ($total_registros > 0) {
+    $soma = 0;
+    foreach ($registros as $r) {
+        $soma += intval($r['intensidade']);
+    }
+    $media_intensidade = round($soma / $total_registros, 1);
+}
+
+// Último registro
+$ultimo_registro = $total_registros > 0 ? $registros[0] : null;
+?>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dados do Paciente | PsicoWeb</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/boxicons@latest/css/boxicons.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="icon" href="img/LogoTCC.png" type="image/png">
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --verde-principal: #4CAF8C;
+            --verde-escuro: #2E8B57;
+            --verde-claro: #A8E6CF;
+            --verde-suave: #E8F5F0;
+            --roxo-principal: #9B7BB5;
+            --roxo-escuro: #6B4E8A;
+            --roxo-claro: #D4C5E8;
+            --roxo-suave: #F3EDF8;
+            --laranja-principal: #F4A261;
+            --laranja-escuro: #E76F51;
+            --laranja-claro: #FFD6B5;
+            --laranja-suave: #FFF4E8;
+            --branco: #FFFFFF;
+            --cinza-claro: #F5F7FA;
+            --cinza-medio: #CFD8DC;
+            --cinza-escuro: #455A64;
+            --texto-principal: #2C3E50;
+            --texto-secundario: #546E7A;
+        }
+
+        body {
+            font-family: 'Roboto', system-ui, sans-serif;
+            background: url(./img/BGTCC.png) no-repeat center center fixed;
+            background-size: cover;
+            color: var(--texto-principal);
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: '';
+            position: fixed; inset: 0;
+            background: rgba(255,255,255,0.88);
+            pointer-events: none; z-index: 0;
+        }
+
+        .site-wrapper {
+            position: relative; z-index: 2;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 2rem 2rem 4rem;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--verde-claro);
+        }
+
+        .logo-area { display: flex; align-items: center; gap: 0.75rem; }
+        .logo-img { height: 58px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05)); }
+        .logo-text {
+            font-size: 1.6rem; font-weight: 600;
+            background: linear-gradient(135deg, var(--verde-escuro), var(--roxo-principal));
+            background-clip: text; -webkit-background-clip: text; color: transparent;
+        }
+
+        .nav-links { display: flex; gap: 1.8rem; flex-wrap: wrap; align-items: center; }
+        .nav-links a {
+            text-decoration: none; font-weight: 500;
+            color: var(--texto-secundario); transition: color 0.2s; font-size: 1rem;
+        }
+        .nav-links a:hover { color: var(--verde-principal); }
+        .nav-links a.active { color: var(--roxo-escuro); font-weight: 700; }
+
+        .btn-voltar {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.6rem 1.2rem; border-radius: 40px;
+            background: var(--roxo-suave); color: var(--roxo-escuro);
+            text-decoration: none; font-weight: 600; font-size: 0.9rem;
+            transition: 0.2s; border: 2px solid var(--roxo-claro);
+        }
+        .btn-voltar:hover { background: var(--roxo-claro); transform: translateY(-2px); }
+
+        .hero-card {
+            background: linear-gradient(120deg, var(--branco) 0%, var(--roxo-suave) 100%);
+            border-left: 8px solid var(--roxo-principal);
+            border-radius: 28px;
+            padding: 1.8rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+        }
+
+        .hero-card h1 {
+            font-size: 1.8rem; font-weight: 700;
+            color: var(--texto-principal);
+        }
+
+        .hero-card h1 span {
+            background: linear-gradient(130deg, var(--roxo-escuro), var(--verde-principal));
+            background-clip: text; -webkit-background-clip: text; color: transparent;
+        }
+
+        .hero-card .sub-info {
+            display: flex; gap: 2rem; flex-wrap: wrap;
+            margin-top: 0.8rem; color: var(--texto-secundario);
+        }
+
+        .hero-card .sub-info i { margin-right: 0.3rem; }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: var(--branco);
+            border-radius: 24px;
+            padding: 1.3rem 1.5rem;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.04);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover { transform: translateY(-3px); }
+
+        .stat-icon {
+            width: 50px; height: 50px;
+            border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+
+        .stat-icon.verde { background: var(--verde-suave); color: var(--verde-escuro); }
+        .stat-icon.roxo  { background: var(--roxo-suave); color: var(--roxo-escuro); }
+        .stat-icon.laranja { background: var(--laranja-suave); color: var(--laranja-escuro); }
+        .stat-icon.cinza { background: var(--cinza-claro); color: var(--cinza-escuro); }
+
+        .stat-info strong {
+            display: block;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--texto-principal);
+            line-height: 1;
+        }
+
+        .stat-info span {
+            font-size: 0.76rem;
+            color: var(--texto-secundario);
+            font-weight: 500;
+        }
+
+        .card {
+            background: var(--branco);
+            border-radius: 28px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.03);
+            padding: 1.8rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.1rem; font-weight: 700;
+            color: var(--roxo-escuro);
+            display: flex; align-items: center; gap: 0.6rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .tabs-header {
+            display: flex;
+            gap: 0;
+            border-bottom: 2px solid var(--cinza-medio);
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        .tab-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.85rem 1.6rem;
+            border: none;
+            background: transparent;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--texto-secundario);
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: color 0.2s, border-color 0.2s;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .tab-btn:hover {
+            color: var(--verde-principal);
+            background: var(--verde-suave);
+        }
+
+        .tab-btn.active {
+            color: var(--roxo-escuro);
+            border-bottom-color: var(--roxo-principal);
+            font-weight: 700;
+            background: var(--roxo-suave);
+        }
+
+        .tab-btn i { font-size: 1.1rem; }
+
+        .tab-panel { display: none; animation: fadeIn 0.22s ease; }
+        .tab-panel.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .tabela-container { overflow-x: auto; }
+        .emo-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            min-width: 800px;
+        }
+        .emo-table th {
+            background: var(--verde-suave);
+            color: var(--verde-escuro);
+            padding: 0.8rem 0.8rem;
+            font-weight: 600;
+            text-align: left;
+            border-bottom: 2px solid var(--verde-claro);
+            font-size: 0.85rem;
+        }
+        .emo-table td {
+            padding: 0.8rem 0.8rem;
+            border-bottom: 1px solid var(--cinza-medio);
+            vertical-align: top;
+            background-color: var(--branco);
+            font-size: 0.88rem;
+        }
+        .emo-table tr:hover td { background-color: var(--roxo-suave); }
+
+        .badge-intensidade {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.8rem;
+        }
+        .badge-intensidade.baixa { background: var(--verde-suave); color: var(--verde-escuro); }
+        .badge-intensidade.moderada { background: #FEF3C7; color: #92400E; }
+        .badge-intensidade.alta { background: #FED7AA; color: #9A3412; }
+        .badge-intensidade.critica { background: #FECACA; color: #991B1B; }
+
+        .diario-entry {
+            background: var(--branco);
+            border-radius: 20px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.04);
+            padding: 1.2rem 1.5rem;
+            margin-bottom: 1rem;
+            border-left: 5px solid var(--roxo-claro);
+            transition: box-shadow 0.2s;
+        }
+        .diario-entry:hover { box-shadow: 0 6px 18px rgba(0,0,0,0.08); }
+        .diario-entry-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.6rem;
+        }
+        .diario-entry-title {
+            font-weight: 700;
+            color: var(--roxo-escuro);
+            font-size: 1rem;
+        }
+        .diario-entry-date {
+            font-size: 0.8rem;
+            color: var(--texto-secundario);
+        }
+        .diario-entry-mood {
+            display: inline-block;
+            padding: 0.25rem 0.8rem;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background: var(--roxo-suave);
+            color: var(--roxo-escuro);
+        }
+        .diario-entry-text {
+            color: var(--texto-principal);
+            font-size: 0.92rem;
+            line-height: 1.65;
+            white-space: pre-wrap;
+        }
+
+        .checkin-card {
+            background: var(--laranja-suave);
+            border-radius: 16px;
+            padding: 1rem 1.3rem;
+            margin-bottom: 0.8rem;
+            border-left: 4px solid var(--laranja-principal);
+        }
+        .checkin-card .meta {
+            display: flex; justify-content: space-between;
+            flex-wrap: wrap; gap: 0.5rem;
+            margin-bottom: 0.4rem;
+        }
+        .checkin-card .meta .data {
+            font-size: 0.8rem; color: var(--texto-secundario);
+        }
+        .checkin-card .emoções {
+            display: flex; gap: 0.5rem; flex-wrap: wrap;
+            margin: 0.4rem 0;
+        }
+        .checkin-card .emoção-tag {
+            padding: 2px 10px; border-radius: 20px;
+            background: var(--branco); font-size: 0.8rem;
+            border: 1px solid var(--laranja-claro);
+        }
+        .checkin-card .intensidade {
+            font-weight: 700; color: var(--laranja-escuro);
+        }
+
+        .empty-state {
+            text-align: center; padding: 2.5rem 1rem;
+            color: var(--texto-secundario);
+        }
+        .empty-state i { font-size: 2.5rem; opacity: 0.3; display: block; margin-bottom: 0.8rem; }
+        .empty-state p { font-size: 0.9rem; }
+
+        .btn-ajuda-urgente {
+            position: fixed; bottom: 30px; right: 30px; z-index: 1000;
+            background: var(--laranja-escuro); color: white;
+            border: none; border-radius: 60px; padding: 1rem 1.8rem;
+            font-size: 1rem; font-weight: 700; cursor: pointer;
+            box-shadow: 0 8px 20px rgba(231,111,81,0.4);
+            transition: 0.3s; display: flex; align-items: center; gap: 0.7rem;
+            text-decoration: none;
+        }
+        .btn-ajuda-urgente:hover { background: #c0392b; transform: scale(1.05); }
+
+        footer {
+            margin-top: 3rem;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--cinza-escuro);
+            border-top: 1px solid var(--cinza-medio);
+            padding-top: 1.5rem;
+        }
+
+        @media (max-width: 900px) {
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .site-wrapper { padding: 1rem; }
+        }
+
+        @media (max-width: 600px) {
+            .stats-row { grid-template-columns: 1fr; }
+            .hero-card h1 { font-size: 1.3rem; }
+            .tab-btn { padding: 0.6rem 1rem; font-size: 0.85rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="site-wrapper">
+
+    <div class="top-bar">
+        <div class="logo-area">
+            <img src="img/LogoTCC.png" alt="Logo" class="logo-img" onerror="this.style.display='none'">
+            <span class="logo-text">PsicoWeb</span>
+        </div>
+        <div class="nav-links">
+            <a href="painel_psicologo.php"><i class='bx bx-arrow-back'></i> Voltar ao Painel</a>
+            <a href="logout.php"><i class='bx bx-log-out'></i> Sair</a>
+        </div>
+    </div>
+
+    <div class="hero-card">
+        <h1>Dados de <span><?= htmlspecialchars($paciente['nome_cliente']) ?></span></h1>
+        <div class="sub-info">
+            <span><i class='bx bx-envelope'></i> <?= htmlspecialchars($paciente['email'] ?? 'Email não informado') ?></span>
+            <span><i class='bx bx-phone'></i> <?= htmlspecialchars($paciente['telefone'] ?? 'Telefone não informado') ?></span>
+            <span><i class='bx bx-calendar'></i> Conectado desde: <?= date('d/m/Y', strtotime($vinculo['data_aceite'])) ?></span>
+        </div>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-icon verde"><i class='bx bx-notepad'></i></div>
+            <div class="stat-info">
+                <strong><?= $total_registros ?></strong>
+                <span>Registros de emoções</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon roxo"><i class='bx bx-pulse'></i></div>
+            <div class="stat-info">
+                <strong><?= $media_intensidade > 0 ? $media_intensidade . '/10' : '—' ?></strong>
+                <span>Intensidade média</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon laranja"><i class='bx bx-book-heart'></i></div>
+            <div class="stat-info">
+                <strong><?= $total_diario ?></strong>
+                <span>Entradas no diário</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon cinza"><i class='bx bx-edit-alt'></i></div>
+            <div class="stat-info">
+                <strong><?= $total_checkins ?></strong>
+                <span>Check-ins rápidos</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="tabs-header">
+            <button class="tab-btn active" data-tab="registros" role="tab">
+                <i class='bx bx-table'></i> Registros de Emoções
+            </button>
+            <button class="tab-btn" data-tab="diario" role="tab">
+                <i class='bx bx-book-heart'></i> Diário
+            </button>
+            <button class="tab-btn" data-tab="checkins" role="tab">
+                <i class='bx bx-edit-alt'></i> Check-ins Rápidos
+            </button>
+        </div>
+
+        <div class="tab-panel active" id="panel-registros">
+            <?php if (count($registros) > 0): ?>
+                <div class="tabela-container">
+                    <table class="emo-table">
+                        <thead>
+                            <tr>
+                                <th>Data / Hora</th>
+                                <th>Situação</th>
+                                <th>Pensamento Automático</th>
+                                <th>Sentimento / Emoção</th>
+                                <th>Intensidade</th>
+                                <th>Comportamento</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($registros as $r): 
+                                $int = intval($r['intensidade']);
+                                $classe = $int <= 3 ? 'baixa' : ($int <= 6 ? 'moderada' : ($int <= 8 ? 'alta' : 'critica'));
+                            ?>
+                            <tr>
+                                <td><?= htmlspecialchars($r['data_registro']) ?></td>
+                                <td><?= htmlspecialchars($r['situacao'] ?? '—') ?></td>
+                                <td><?= htmlspecialchars($r['pensamento'] ?? '—') ?></td>
+                                <td><?= htmlspecialchars($r['sentimento'] ?? '—') ?></td>
+                                <td><span class="badge-intensidade <?= $classe ?>"><?= $int ?>/10</span></td>
+                                <td><?= htmlspecialchars($r['comportamento'] ?? '—') ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php else: ?>
+                <div class="empty-state">
+                    <i class='bx bx-info-circle'></i>
+                    <p>Este paciente ainda não fez nenhum registro na tabela de emoções.</p>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <div class="tab-panel" id="panel-diario">
+            <?php if (count($diario) > 0): ?>
+                <?php foreach ($diario as $e): ?>
+                    <div class="diario-entry">
+                        <div class="diario-entry-meta">
+                            <span class="diario-entry-title"><?= htmlspecialchars($e['titulo'] ?? 'Entrada sem título') ?></span>
+                            <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+                                <?php if (!empty($e['humor']) && $e['humor'] !== '—'): ?>
+                                    <span class="diario-entry-mood"><?= htmlspecialchars($e['humor']) ?></span>
+                                <?php endif; ?>
+                                <span class="diario-entry-date"><i class='bx bx-calendar-alt'></i> <?= htmlspecialchars($e['data_registro']) ?></span>
+                            </div>
+                        </div>
+                        <p class="diario-entry-text"><?= nl2br(htmlspecialchars($e['texto'])) ?></p>
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="empty-state">
+                    <i class='bx bx-book-open'></i>
+                    <p>Este paciente ainda não escreveu nada no diário.</p>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <div class="tab-panel" id="panel-checkins">
+            <?php if (count($checkins) > 0): ?>
+                <?php foreach ($checkins as $c): 
+                    $emocoes = json_decode($c['emocoes'] ?? '[]', true);
+                    $corpo = json_decode($c['corpo'] ?? '[]', true);
+                ?>
+                    <div class="checkin-card">
+                        <div class="meta">
+                            <span><strong>Check-in</strong></span>
+                            <span class="data"><i class='bx bx-calendar-alt'></i> <?= htmlspecialchars($c['data_registro']) ?></span>
+                        </div>
+                        <?php if (!empty($c['situacao'])): ?>
+                            <p><strong>Situação:</strong> <?= htmlspecialchars($c['situacao']) ?></p>
+                        <?php endif; ?>
+                        <?php if (!empty($emocoes)): ?>
+                            <div class="emoções">
+                                <?php foreach ($emocoes as $e): ?>
+                                    <span class="emoção-tag"><?= htmlspecialchars($e) ?></span>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                        <p><span class="intensidade">Intensidade: <?= intval($c['intensidade']) ?>/10</span></p>
+                        <?php if (!empty($corpo)): ?>
+                            <p style="font-size:0.85rem; color:var(--texto-secundario);">
+                                <strong>Corpo:</strong> <?= implode(', ', array_map('htmlspecialchars', $corpo)) ?>
+                            </p>
+                        <?php endif; ?>
+                        <?php if (!empty($c['pensamento'])): ?>
+                            <p style="font-size:0.85rem;"><strong>Pensamento:</strong> <?= htmlspecialchars($c['pensamento']) ?></p>
+                        <?php endif; ?>
+                        <?php if (!empty($c['comportamento'])): ?>
+                            <p style="font-size:0.85rem;"><strong>Comportamento:</strong> <?= htmlspecialchars($c['comportamento']) ?></p>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div class="empty-state">
+                    <i class='bx bx-edit-alt'></i>
+                    <p>Este paciente ainda não fez nenhum check-in rápido.</p>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2026 PsicoWeb · Acolhendo sua jornada de bem-estar mental.</p>
+        <p style="margin-top:0.3rem;">Os dados exibidos são de acesso restrito ao psicólogo vinculado ao paciente.</p>
+    </footer>
+</div>
+
+<a href="ajuda.html" class="btn-ajuda-urgente">
+    <i class='bx bx-help-circle'></i> Ajuda Urgente
+</a>
+
+<script>
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); });
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+    });
+});
+</script>
+</body>
+</html>
